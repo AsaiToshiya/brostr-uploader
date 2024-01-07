@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>brostr-uploader</title>
+  </head>
+  <body>
+    <h1>nostr-uploader</h1>
+    <input type="file" onchange="handleChange(event)" /><br />
+    id:
+    <input id="id" type="text" />
+    <button onclick="handleUuidClick()">uuid</button><br />
+    title:
+    <input id="title" type="text" /><br />
+    nsec:
+    <input id="nsec" type="text" size="50" /><br />
+    <button onclick="handleClick()">publish</button><br />
+    event:
+    <pre id="event"></pre>
+
+    <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
+    <script>
+      const relays = [
+        "wss://nos.lol",
+        "wss://nostr.bitcoiner.social",
+        "wss://nostr.mom",
+        "wss://relay.damus.io",
+        "wss://relay.nostr.bg",
+      ];
+
+      const handleChange = (event) => {
+        const reader = new FileReader();
+        reader.onload = (event) => (content = event.target.result);
+        reader.readAsText(event.target.files[0]);
+      };
+
+      const handleClick = async () => {
+        const sk = window.NostrTools.nip19.decode(nsec.value).data;
+
+        const event = window.NostrTools.finalizeEvent(
+          {
+            kind: 35392,
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [
+              ["d", id.value],
+              ...(title.value ? [["title", title.value]] : []),
+            ],
+            content,
+          },
+          sk
+        );
+
+        const pool = new window.NostrTools.SimplePool();
+        await Promise.any(pool.publish(relays, event));
+        pool.close(relays);
+
+        document.querySelector("#event").innerText = JSON.stringify(
+          event,
+          null,
+          2
+        );
+      };
+
+      const handleUuidClick = () => (id.value = crypto.randomUUID());
+
+      let content;
+    </script>
+  </body>
+</html>
